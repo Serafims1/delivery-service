@@ -1,0 +1,26 @@
+app:
+  name: "International Delivery Service"
+  debug: false
+  secret_key: "change-me"
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "delivery"
+  user: "postgres"
+  password: "change-me"
+
+redis:
+  host: "redis"
+  port: 6379
+  db: 0
+
+rabbitmq:
+  host: "rabbitmq"
+  port: 5672
+  user: "guest"
+  password: "change-me"
