@@ -20,7 +20,7 @@ class AppSettings(BaseModel):
 
 
 class ServerSettings(BaseModel):
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # nosec B104
     port: int = 8000
 
 
@@ -77,4 +77,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    return Settings()  # type: ignore[call-arg]
