@@ -5,6 +5,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.11.23 /uv /uvx /bin/
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    PYTHONPATH="/app/src" \
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
@@ -13,10 +15,14 @@ COPY pyproject.toml uv.lock ./
 
 RUN uv sync --locked --no-install-project
 
-RUN adduser --system --group appuser
+RUN adduser --system --group appuser \
+    && mkdir -p /tmp/uv-cache \
+    && chown -R appuser:appuser /tmp/uv-cache
 
 COPY --chown=appuser:appuser src ./src
 COPY --chown=appuser:appuser tests ./tests
+COPY --chown=appuser:appuser alembic.ini ./alembic.ini
+COPY --chown=appuser:appuser migrations ./migrations
 
 USER appuser
 

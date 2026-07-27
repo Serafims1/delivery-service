@@ -11,6 +11,8 @@ services:
       - ./config.yaml:/app/config.yaml:ro
       - ./src:/app/src:ro
       - ./tests:/app/tests:ro
+      - ./alembic.ini:/app/alembic.ini
+      - ./migrations:/app/migrations
 
     command:
       - uvicorn
