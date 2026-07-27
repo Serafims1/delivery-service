@@ -64,9 +64,16 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "strict"
 addopts = [
+    "-v",
     "-ra",
     "--strict-markers",
     "--strict-config",
+]
+
+markers = [
+    "unit: быстрые изолированные тесты",
+    "integration: интеграционные тесты нескольких компонентов",
+    "smoke: проверка критически важного функционала",
 ]
 
 [tool.coverage.run]

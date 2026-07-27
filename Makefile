@@ -5,6 +5,7 @@
 APP := delivery_service.main:app
 SRC := src
 TESTS := tests
+COMPOSE := docker compose
 PY_SRCS := $(SRC) $(TESTS)
 
 RADON_MIN_MI := 65
@@ -14,16 +15,23 @@ RADON_MIN_MI := 65
 # Служебные цели
 # ===============================
 
-.PHONY: help install run test test-cov lint format-check type security \
-	cc mi complexity fix check pre-commit clean
+.PHONY: help install run test test-cov test-unit test-integration test-smoke \
+	lint format-check type security cc mi complexity fix check pre-commit clean \
+	build up down restart logs ps compose-config rebuild docker-test
 
 
 help:
 	@echo "Доступные команды:"
+
 	@echo "  make install      - установить зависимости"
 	@echo "  make run          - запустить FastAPI"
+
 	@echo "  make test         - запустить тесты"
 	@echo "  make test-cov     - запустить тесты с покрытием"
+	@echo "  make test-unit        - запустить unit-тесты"
+	@echo "  make test-integration - запустить интеграционные тесты"
+	@echo "  make test-smoke       - запустить smoke-тесты"
+
 	@echo "  make lint         - проверить код через Ruff"
 	@echo "  make format-check - проверить форматирование"
 	@echo "  make type         - проверить типизацию через mypy"
@@ -35,6 +43,16 @@ help:
 	@echo "  make check        - запустить полный quality gate"
 	@echo "  make pre-commit   - запустить pre-commit на всех файлах"
 	@echo "  make clean        - удалить временные файлы"
+
+	@echo "  make build        - собрать Docker-образ приложения"
+	@echo "  make up           - запустить все контейнеры в фоне"
+	@echo "  make rebuild      - пересобрать и запустить контейнеры"
+	@echo "  make down         - остановить и удалить контейнеры"
+	@echo "  make restart      - перезапустить контейнеры"
+	@echo "  make logs         - показать логи всех контейнеров"
+	@echo "  make ps           - показать состояние контейнеров"
+	@echo "  make compose-config - проверить docker-compose.yml"
+	@echo "  make docker-test  - запустить тесты внутри контейнера"
 
 
 # ===============================
@@ -54,15 +72,25 @@ run:
 # ===============================
 
 test:
-	uv run pytest $(TESTS) -v
+	uv run pytest
 
 
 test-cov:
-	uv run pytest $(TESTS) \
+	uv run pytest \
 		--cov=$(SRC)/delivery_service \
 		--cov-report=term-missing \
 		--cov-report=html
 
+test-unit:
+	uv run pytest -m unit
+
+
+test-integration:
+	uv run pytest -m integration
+
+
+test-smoke:
+	uv run pytest -m smoke
 
 # ===============================
 # Ruff
@@ -139,6 +167,43 @@ check: format-check lint type security complexity test
 pre-commit:
 	uv run pre-commit run --all-files
 
+# ===============================
+# Docker Compose
+# ===============================
+
+compose-config:
+	$(COMPOSE) config
+
+
+build:
+	$(COMPOSE) build
+
+
+up:
+	$(COMPOSE) up -d
+
+
+rebuild:
+	$(COMPOSE) up -d --build
+
+
+down:
+	$(COMPOSE) down
+
+
+restart:
+	$(COMPOSE) restart
+
+
+logs:
+	$(COMPOSE) logs -f
+
+
+ps:
+	$(COMPOSE) ps
+
+docker-test:
+	$(COMPOSE) run --rm app pytest
 
 # ===============================
 # Очистка
