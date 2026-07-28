@@ -13,7 +13,7 @@ class ParcelCreate(BaseModel):
 class ParcelRead(ParcelCreate):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: int = Field(gt=0)
     delivery_cost_rub: Decimal | None = Field(
         None, max_digits=12, decimal_places=2, ge=0
     )

@@ -17,7 +17,8 @@ RADON_MIN_MI := 65
 
 .PHONY: help install run test test-cov test-unit test-integration test-smoke \
 	lint format-check type security cc mi complexity fix check pre-commit clean \
-	build up down restart logs ps compose-config rebuild docker-test
+	build up down restart logs ps compose-config rebuild docker-test \
+	migration migrate migration-down migration-current migration-history
 
 
 help:
@@ -53,6 +54,12 @@ help:
 	@echo "  make ps           - показать состояние контейнеров"
 	@echo "  make compose-config - проверить docker-compose.yml"
 	@echo "  make docker-test  - запустить тесты внутри контейнера"
+
+	@echo "  make migration m=\"message\" - создать новую миграцию"
+	@echo "  make migrate               - применить все миграции"
+	@echo "  make migration-down        - откатить последнюю миграцию"
+	@echo "  make migration-current     - показать текущую миграцию"
+	@echo "  make migration-history     - показать историю миграций"
 
 
 # ===============================
@@ -142,8 +149,9 @@ cc:
 
 
 mi:
-	@uv run radon mi $(PY_SRCS) -s
-	@MI_BAD=$$(uv run radon mi $(PY_SRCS) -s \
+	@uv run radon mi $(SRC) -s \
+		-e "src/delivery_service/database/seed.py"
+	@MI_BAD=$$(uv run radon mi $(SRC) -s \
 		-e "src/delivery_service/database/seed.py" \
 		| awk -F '[()]' '/[0-9]+\.[0-9]+/ {print $$2}' \
 		| awk '$$1 + 0 < $(RADON_MIN_MI) {print}'); \
@@ -205,6 +213,43 @@ ps:
 
 docker-test:
 	$(COMPOSE) run --rm app pytest
+
+docker-cov:
+	$(COMPOSE) run --rm \
+		-e COVERAGE_FILE=/tmp/.coverage \
+		app pytest \
+		--cov=delivery_service \
+		--cov-report=term-missing \
+		-o cache_dir=/tmp/pytest-cache
+
+# ===============================
+# Alembic
+# ===============================
+
+migration:
+	@test -n "$(m)" || (echo 'Укажи сообщение: make migration m="add field"' && exit 1)
+	$(COMPOSE) exec -u 1000:1000 app \
+		/app/.venv/bin/alembic revision --autogenerate -m "$(m)"
+
+
+migrate:
+	$(COMPOSE) exec app \
+		/app/.venv/bin/alembic upgrade head
+
+
+migration-down:
+	$(COMPOSE) exec app \
+		/app/.venv/bin/alembic downgrade -1
+
+
+migration-current:
+	$(COMPOSE) exec app \
+		/app/.venv/bin/alembic current
+
+
+migration-history:
+	$(COMPOSE) exec app \
+		/app/.venv/bin/alembic history
 
 # ===============================
 # Очистка
