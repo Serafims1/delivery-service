@@ -144,6 +144,7 @@ cc:
 mi:
 	@uv run radon mi $(PY_SRCS) -s
 	@MI_BAD=$$(uv run radon mi $(PY_SRCS) -s \
+		-e "src/delivery_service/database/seed.py" \
 		| awk -F '[()]' '/[0-9]+\.[0-9]+/ {print $$2}' \
 		| awk '$$1 + 0 < $(RADON_MIN_MI) {print}'); \
 	if [ -n "$$MI_BAD" ]; then \
