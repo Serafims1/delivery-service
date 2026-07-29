@@ -170,7 +170,7 @@ complexity: cc mi
 # Комплексные проверки
 # ===============================
 
-check: format-check lint type security complexity test
+check: format-check lint type security complexity docker-test
 
 
 pre-commit:
