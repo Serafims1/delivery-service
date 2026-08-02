@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import uuid4
 
-from fastapi import Request
+from fastapi import Depends, Request
 
 
 def get_session(request: Request) -> str:
@@ -11,3 +12,6 @@ def get_session(request: Request) -> str:
         request.session["session_id"] = session_id
 
     return session_id
+
+
+SessionDep = Annotated[str, Depends(get_session)]

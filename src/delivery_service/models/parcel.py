@@ -21,3 +21,4 @@ class Parcel(Base):
         ForeignKey("parcel_types.id"),
         index=True,
     )
+    session_id: Mapped[str] = mapped_column(String(36), index=True)

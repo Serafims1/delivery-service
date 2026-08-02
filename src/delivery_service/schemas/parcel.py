@@ -17,3 +17,7 @@ class ParcelRead(ParcelCreate):
     delivery_cost_rub: Decimal | None = Field(
         None, max_digits=12, decimal_places=2, ge=0
     )
+
+
+class ParcelCreateResponse(BaseModel):
+    id: int = Field(gt=0)
