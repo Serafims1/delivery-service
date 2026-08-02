@@ -14,4 +14,4 @@ def get_session(request: Request) -> str:
     return session_id
 
 
-SessionDep = Annotated[str, Depends(get_session)]
+SessionIdDep = Annotated[str, Depends(get_session)]
