@@ -1,0 +1,2 @@
+class ParcelTypeNotFoundError(Exception):
+    pass

@@ -1,0 +1,27 @@
+from delivery_service.core.exceptions import ParcelTypeNotFoundError
+from delivery_service.models.parcel import Parcel
+from delivery_service.repositories.parcel import ParcelRepository
+from delivery_service.repositories.parcel_type import ParcelTypeRepository
+from delivery_service.schemas.parcel import ParcelCreate
+
+
+class ParcelService:
+    def __init__(
+        self, parcel_repo: ParcelRepository, parcel_type_repo: ParcelTypeRepository
+    ) -> None:
+        self.parcel_repo = parcel_repo
+        self.parcel_type_repo = parcel_type_repo
+
+    async def create_parcel(self, parcel_data: ParcelCreate, session_id: str) -> Parcel:
+        parcel_type = await self.parcel_type_repo.get_by_id(parcel_data.parcel_type_id)
+
+        if parcel_type is None:
+            raise ParcelTypeNotFoundError("Отсутствует тип посылки")
+
+        parcel = await self.parcel_repo.register_parcel(
+            parcel_data=parcel_data, session_id=session_id
+        )
+
+        await self.parcel_repo.session.commit()
+
+        return parcel
