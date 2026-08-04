@@ -1,7 +1,12 @@
+from typing import Any
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
 
 from delivery_service.models.parcel import Parcel
-from delivery_service.schemas.parcel import ParcelCreate
+from delivery_service.models.parcel_type import ParcelType
+from delivery_service.schemas.parcel import ParcelCreate, ParcelListItem
 
 
 class ParcelRepository:
@@ -17,3 +22,47 @@ class ParcelRepository:
         await self.session.flush()
 
         return parcel
+
+    def _build_parcel_list_query(self, session_id: str) -> Select[Any]:
+        query = (
+            select(
+                Parcel.id,
+                Parcel.name,
+                Parcel.weight,
+                Parcel.parcel_type_id,
+                Parcel.content_value_usd,
+                Parcel.delivery_cost_rub,
+                ParcelType.name.label("parcel_type_name"),
+            )
+            .join(ParcelType, Parcel.parcel_type_id == ParcelType.id)
+            .where(Parcel.session_id == session_id)
+        )
+        return query
+
+    async def get_list_parcels(
+        self,
+        session_id: str,
+        limit: int,
+        offset: int,
+        parcel_type_id: int | None = None,
+        has_delivery_cost: bool | None = None,
+    ) -> list[ParcelListItem]:
+
+        query = self._build_parcel_list_query(session_id)
+
+        if parcel_type_id is not None:
+            query = query.where(Parcel.parcel_type_id == parcel_type_id)
+
+        if has_delivery_cost is True:
+            query = query.where(Parcel.delivery_cost_rub.is_not(None))
+
+        if has_delivery_cost is False:
+            query = query.where(Parcel.delivery_cost_rub.is_(None))
+
+        query = query.offset(offset).limit(limit)
+
+        result = await self.session.execute(query)
+
+        rows = result.mappings().all()
+
+        return [ParcelListItem.model_validate(row) for row in rows]

@@ -21,3 +21,13 @@ class ParcelRead(ParcelCreate):
 
 class ParcelCreateResponse(BaseModel):
     id: int = Field(gt=0)
+
+
+class ParcelListItem(ParcelCreate):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int = Field(gt=0)
+    delivery_cost_rub: Decimal | None = Field(
+        None, max_digits=12, decimal_places=2, ge=0
+    )
+    parcel_type_name: str = Field(min_length=1, max_length=30)

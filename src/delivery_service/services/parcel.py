@@ -2,7 +2,7 @@ from delivery_service.core.exceptions import ParcelTypeNotFoundError
 from delivery_service.models.parcel import Parcel
 from delivery_service.repositories.parcel import ParcelRepository
 from delivery_service.repositories.parcel_type import ParcelTypeRepository
-from delivery_service.schemas.parcel import ParcelCreate
+from delivery_service.schemas.parcel import ParcelCreate, ParcelListItem
 
 
 class ParcelService:
@@ -25,3 +25,20 @@ class ParcelService:
         await self.parcel_repo.session.commit()
 
         return parcel
+
+    async def get_all_parcels(
+        self,
+        session_id: str,
+        limit: int,
+        offset: int,
+        parcel_type_id: int | None = None,
+        has_delivery_cost: bool | None = None,
+    ) -> list[ParcelListItem]:
+
+        return await self.parcel_repo.get_list_parcels(
+            session_id=session_id,
+            limit=limit,
+            offset=offset,
+            parcel_type_id=parcel_type_id,
+            has_delivery_cost=has_delivery_cost,
+        )

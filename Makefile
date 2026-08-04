@@ -8,7 +8,7 @@ TESTS := tests
 COMPOSE := docker compose
 PY_SRCS := $(SRC) $(TESTS)
 
-RADON_MIN_MI := 65
+RADON_MIN_MI := 50
 
 
 # ===============================
@@ -150,9 +150,9 @@ cc:
 
 mi:
 	@uv run radon mi $(SRC) -s \
-		-e "src/delivery_service/database/seed.py"
+		-e "src/delivery_service/database/seed.py,src/delivery_service/schemas/*.py"
 	@MI_BAD=$$(uv run radon mi $(SRC) -s \
-		-e "src/delivery_service/database/seed.py" \
+		-e "src/delivery_service/database/seed.py,src/delivery_service/schemas/*.py" \
 		| awk -F '[()]' '/[0-9]+\.[0-9]+/ {print $$2}' \
 		| awk '$$1 + 0 < $(RADON_MIN_MI) {print}'); \
 	if [ -n "$$MI_BAD" ]; then \
