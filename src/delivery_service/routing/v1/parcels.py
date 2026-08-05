@@ -52,3 +52,17 @@ async def get_all_parcels(
     )
 
     return parcels
+
+
+@router.get("/{parcel_id}", response_model=ParcelListItem)
+async def get_parcel_by_id(
+    session: SessionDep, session_id: SessionIdDep, parcel_id: int
+) -> ParcelListItem:
+    parcel_repository = ParcelRepository(session)
+    parcel_type_repository = ParcelTypeRepository(session)
+
+    service = ParcelService(parcel_repository, parcel_type_repository)
+
+    parcel = await service.get_parcel_by_id(session_id=session_id, parcel_id=parcel_id)
+
+    return parcel

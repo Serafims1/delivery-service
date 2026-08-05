@@ -3,7 +3,10 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from delivery_service.core.config import get_settings
-from delivery_service.core.exceptions import ParcelTypeNotFoundError
+from delivery_service.core.exceptions import (
+    ParcelNotFoundError,
+    ParcelTypeNotFoundError,
+)
 from delivery_service.routing.v1.router import router as api_router
 
 settings = get_settings()
@@ -18,6 +21,15 @@ app = FastAPI(
 @app.exception_handler(ParcelTypeNotFoundError)
 async def parcel_type_not_found_handler(
     request: Request, exc: ParcelTypeNotFoundError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)}
+    )
+
+
+@app.exception_handler(ParcelNotFoundError)
+async def parcel_not_found_handler(
+    request: Request, exc: ParcelNotFoundError
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)}

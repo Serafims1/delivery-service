@@ -23,22 +23,6 @@ class ParcelRepository:
 
         return parcel
 
-    def _build_parcel_list_query(self, session_id: str) -> Select[Any]:
-        query = (
-            select(
-                Parcel.id,
-                Parcel.name,
-                Parcel.weight,
-                Parcel.parcel_type_id,
-                Parcel.content_value_usd,
-                Parcel.delivery_cost_rub,
-                ParcelType.name.label("parcel_type_name"),
-            )
-            .join(ParcelType, Parcel.parcel_type_id == ParcelType.id)
-            .where(Parcel.session_id == session_id)
-        )
-        return query
-
     async def get_list_parcels(
         self,
         session_id: str,
@@ -48,7 +32,7 @@ class ParcelRepository:
         has_delivery_cost: bool | None = None,
     ) -> list[ParcelListItem]:
 
-        query = self._build_parcel_list_query(session_id)
+        query = self._build_parcel_query(session_id)
 
         if parcel_type_id is not None:
             query = query.where(Parcel.parcel_type_id == parcel_type_id)
@@ -68,3 +52,34 @@ class ParcelRepository:
         rows = result.mappings().all()
 
         return [ParcelListItem.model_validate(row) for row in rows]
+
+    def _build_parcel_query(self, session_id: str) -> Select[Any]:
+        query = (
+            select(
+                Parcel.id,
+                Parcel.name,
+                Parcel.weight,
+                Parcel.parcel_type_id,
+                Parcel.content_value_usd,
+                Parcel.delivery_cost_rub,
+                ParcelType.name.label("parcel_type_name"),
+            )
+            .join(ParcelType, Parcel.parcel_type_id == ParcelType.id)
+            .where(Parcel.session_id == session_id)
+        )
+        return query
+
+    async def get_parcel_by_id(
+        self, session_id: str, parcel_id: int
+    ) -> ParcelListItem | None:
+        query = self._build_parcel_query(session_id)
+
+        query = query.where(Parcel.id == parcel_id)
+
+        result = await self.session.execute(query)
+        row = result.mappings().one_or_none()
+
+        if row is None:
+            return None
+
+        return ParcelListItem.model_validate(row)

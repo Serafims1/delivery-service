@@ -1,4 +1,7 @@
-from delivery_service.core.exceptions import ParcelTypeNotFoundError
+from delivery_service.core.exceptions import (
+    ParcelNotFoundError,
+    ParcelTypeNotFoundError,
+)
 from delivery_service.models.parcel import Parcel
 from delivery_service.repositories.parcel import ParcelRepository
 from delivery_service.repositories.parcel_type import ParcelTypeRepository
@@ -42,3 +45,13 @@ class ParcelService:
             parcel_type_id=parcel_type_id,
             has_delivery_cost=has_delivery_cost,
         )
+
+    async def get_parcel_by_id(self, session_id: str, parcel_id: int) -> ParcelListItem:
+        parcel = await self.parcel_repo.get_parcel_by_id(
+            session_id=session_id, parcel_id=parcel_id
+        )
+
+        if parcel is None:
+            raise ParcelNotFoundError("Посылка отсутствует")
+
+        return parcel

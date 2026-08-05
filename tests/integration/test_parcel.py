@@ -223,3 +223,65 @@ async def test_get_parcels_applies_pagination(
     assert response.status_code == 200
     assert len(data) == 1
     assert data[0]["name"] == "AirPods"
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_get_parcel_by_id_success(
+    client: AsyncClient, parcel_types: list[ParcelType]
+) -> None:
+    create_response = await client.post(
+        "/api/v1/parcels",
+        json={
+            "name": "MacBook",
+            "weight": 2.1,
+            "parcel_type_id": parcel_types[0].id,
+            "content_value_usd": 1800,
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    data = create_response.json()
+    parcel_id = data["id"]
+
+    response = await client.get(
+        f"/api/v1/parcels/{parcel_id}",
+    )
+
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data["id"] == parcel_id
+    assert data["name"] == "MacBook"
+    assert data["parcel_type_id"] == parcel_types[0].id
+    assert data["delivery_cost_rub"] is None
+    assert "parcel_type_name" in data
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_get_parcel_by_id_foreign_session_returns_404(
+    client: AsyncClient, parcel_types: list[ParcelType], test_session: AsyncSession
+) -> None:
+    foreign_parcel = Parcel(
+        name="Кроссовки",
+        weight=0.5,
+        parcel_type_id=parcel_types[0].id,
+        content_value_usd=150,
+        delivery_cost_rub=None,
+        session_id="another-session-id",
+    )
+
+    test_session.add(foreign_parcel)
+    await test_session.commit()
+
+    parcel_id = foreign_parcel.id
+
+    assert parcel_id is not None
+
+    response = await client.get(
+        f"/api/v1/parcels/{parcel_id}",
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Посылка отсутствует"
