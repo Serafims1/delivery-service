@@ -59,6 +59,8 @@ class ParcelRepository:
         if has_delivery_cost is False:
             query = query.where(Parcel.delivery_cost_rub.is_(None))
 
+        query = query.order_by(Parcel.id)
+
         query = query.offset(offset).limit(limit)
 
         result = await self.session.execute(query)

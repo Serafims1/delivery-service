@@ -4,7 +4,11 @@ from delivery_service.database.session import SessionDep
 from delivery_service.dependencies.session import SessionIdDep
 from delivery_service.repositories.parcel import ParcelRepository
 from delivery_service.repositories.parcel_type import ParcelTypeRepository
-from delivery_service.schemas.parcel import ParcelCreate, ParcelCreateResponse
+from delivery_service.schemas.parcel import (
+    ParcelCreate,
+    ParcelCreateResponse,
+    ParcelListItem,
+)
 from delivery_service.services.parcel import ParcelService
 
 router = APIRouter(prefix="/parcels", tags=["Parcels"])
@@ -24,3 +28,27 @@ async def create_parcel(
     parcel = await service.create_parcel(parcel_data=parcel_data, session_id=session_id)
 
     return ParcelCreateResponse(id=parcel.id)
+
+
+@router.get("", response_model=list[ParcelListItem])
+async def get_all_parcels(
+    session: SessionDep,
+    session_id: SessionIdDep,
+    limit: int = 10,
+    offset: int = 0,
+    parcel_type_id: int | None = None,
+    has_delivery_cost: bool | None = None,
+) -> list[ParcelListItem]:
+    parcel_repository = ParcelRepository(session)
+    parcel_type_repository = ParcelTypeRepository(session)
+    service = ParcelService(parcel_repository, parcel_type_repository)
+
+    parcels = await service.get_all_parcels(
+        session_id=session_id,
+        limit=limit,
+        offset=offset,
+        parcel_type_id=parcel_type_id,
+        has_delivery_cost=has_delivery_cost,
+    )
+
+    return parcels
