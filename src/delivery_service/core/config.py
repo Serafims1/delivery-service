@@ -36,6 +36,12 @@ class RedisSettings(BaseModel):
     host: str
     port: int = 6379
     db: int = 0
+    exchange_rate_ttl_seconds: int = 300
+
+
+class ExchangeRateSettings(BaseModel):
+    url: str
+    request_timeout_seconds: int = 5
 
 
 class RabbitMQSettings(BaseModel):
@@ -50,6 +56,7 @@ class Settings(BaseSettings):
     server: ServerSettings
     database: DatabaseSettings
     redis: RedisSettings
+    exchange_rate: ExchangeRateSettings
     rabbitmq: RabbitMQSettings
 
     model_config = SettingsConfigDict(
