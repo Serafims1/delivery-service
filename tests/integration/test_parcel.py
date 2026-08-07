@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from delivery_service.models.parcel import Parcel
@@ -18,7 +21,9 @@ async def test_create_parcel_success(
         "content_value_usd": 1800,
     }
 
-    response = await client.post("/api/v1/parcels", json=payload)
+    headers = {"Idempotency-Key": str(uuid4())}
+
+    response = await client.post("/api/v1/parcels", json=payload, headers=headers)
 
     assert response.status_code == 201
     assert "id" in response.json()
@@ -36,7 +41,9 @@ async def test_create_parcel_with_unknown_type(
         "content_value_usd": 1800,
     }
 
-    response = await client.post("/api/v1/parcels", json=payload)
+    headers = {"Idempotency-Key": str(uuid4())}
+
+    response = await client.post("/api/v1/parcels", json=payload, headers=headers)
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Отсутствует тип посылки"}
@@ -53,7 +60,9 @@ async def test_create_parcel_with_unknown_type(
             "content_value_usd": 1800,
         }
 
-        response = await client.post("/api/v1/parcels", json=payload)
+        headers = {"Idempotency-Key": str(uuid4())}
+
+        response = await client.post("/api/v1/parcels", json=payload, headers=headers)
 
         assert response.status_code == 201
 
@@ -77,6 +86,9 @@ async def test_get_parcels_returns_only_current_session(
         "content_value_usd": 1800,
     }
 
+    header1 = {"Idempotency-Key": str(uuid4())}
+    header2 = {"Idempotency-Key": str(uuid4())}
+
     payload2 = {
         "name": "AirPods",
         "weight": 0.4,
@@ -84,8 +96,8 @@ async def test_get_parcels_returns_only_current_session(
         "content_value_usd": 300,
     }
 
-    response1 = await client.post("/api/v1/parcels", json=payload1)
-    response2 = await client.post("/api/v1/parcels", json=payload2)
+    response1 = await client.post("/api/v1/parcels", json=payload1, headers=header1)
+    response2 = await client.post("/api/v1/parcels", json=payload2, headers=header2)
 
     foreign_parcel = Parcel(
         name="Кроссовки",
@@ -125,6 +137,7 @@ async def test_get_parcels_filters_by_type_and_delivery_cost(
             "parcel_type_id": parcel_types[0].id,
             "content_value_usd": 1800,
         },
+        headers={"Idempotency-Key": str(uuid4())},
     )
 
     assert create_response.status_code == 201
@@ -202,9 +215,13 @@ async def test_get_parcels_applies_pagination(
         "content_value_usd": 100,
     }
 
-    response1 = await client.post("/api/v1/parcels", json=payload1)
-    response2 = await client.post("/api/v1/parcels", json=payload2)
-    response3 = await client.post("/api/v1/parcels", json=payload3)
+    header1 = {"Idempotency-Key": str(uuid4())}
+    header2 = {"Idempotency-Key": str(uuid4())}
+    header3 = {"Idempotency-Key": str(uuid4())}
+
+    response1 = await client.post("/api/v1/parcels", json=payload1, headers=header1)
+    response2 = await client.post("/api/v1/parcels", json=payload2, headers=header2)
+    response3 = await client.post("/api/v1/parcels", json=payload3, headers=header3)
 
     assert response1.status_code == 201
     assert response2.status_code == 201
@@ -238,6 +255,7 @@ async def test_get_parcel_by_id_success(
             "parcel_type_id": parcel_types[0].id,
             "content_value_usd": 1800,
         },
+        headers={"Idempotency-Key": str(uuid4())},
     )
 
     assert create_response.status_code == 201
@@ -285,3 +303,66 @@ async def test_get_parcel_by_id_foreign_session_returns_404(
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Посылка отсутствует"
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_create_parcel_with_same_idempotency_key_returns_same_id(
+    client: AsyncClient, parcel_types: list[ParcelType], test_session: AsyncSession
+) -> None:
+    payload = {
+        "name": "MacBook",
+        "weight": 2.1,
+        "parcel_type_id": parcel_types[0].id,
+        "content_value_usd": 1800,
+    }
+
+    header = {"Idempotency-Key": str(uuid4())}
+
+    response1 = await client.post("/api/v1/parcels", headers=header, json=payload)
+
+    assert response1.status_code == 201
+    first_id = response1.json()["id"]
+
+    response2 = await client.post("/api/v1/parcels", headers=header, json=payload)
+
+    assert response2.status_code == 201
+    second_id = response2.json()["id"]
+
+    assert first_id == second_id
+
+    result = await test_session.execute(select(Parcel))
+    parcels = result.scalars().all()
+
+    assert len(parcels) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_idempotency_key_is_released_after_parcel_creation_error(
+    client: AsyncClient, parcel_types: list[ParcelType]
+) -> None:
+    header = {"Idempotency-Key": str(uuid4())}
+
+    payload = {
+        "name": "MacBook",
+        "weight": 2.1,
+        "parcel_type_id": 9999,
+        "content_value_usd": 1800,
+    }
+
+    response1 = await client.post("/api/v1/parcels", json=payload, headers=header)
+
+    assert response1.status_code == 404
+
+    payload2 = {
+        "name": "MacBook",
+        "weight": 2.1,
+        "parcel_type_id": parcel_types[0].id,
+        "content_value_usd": 1800,
+    }
+
+    response2 = await client.post("/api/v1/parcels", json=payload2, headers=header)
+
+    assert response2.status_code == 201
+    assert "id" in response2.json()

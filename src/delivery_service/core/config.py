@@ -37,6 +37,7 @@ class RedisSettings(BaseModel):
     port: int = 6379
     db: int = 0
     exchange_rate_ttl_seconds: int = 300
+    idempotency_ttl_seconds: int = 300
 
 
 class ExchangeRateSettings(BaseModel):
