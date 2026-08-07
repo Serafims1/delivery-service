@@ -3,6 +3,7 @@ from delivery_service.core.exceptions import (
     ParcelTypeNotFoundError,
 )
 from delivery_service.models.parcel import Parcel
+from delivery_service.repositories.outbox import OutboxRepository
 from delivery_service.repositories.parcel import ParcelRepository
 from delivery_service.repositories.parcel_type import ParcelTypeRepository
 from delivery_service.schemas.parcel import ParcelCreate, ParcelListItem
@@ -10,10 +11,14 @@ from delivery_service.schemas.parcel import ParcelCreate, ParcelListItem
 
 class ParcelService:
     def __init__(
-        self, parcel_repo: ParcelRepository, parcel_type_repo: ParcelTypeRepository
+        self,
+        parcel_repo: ParcelRepository,
+        parcel_type_repo: ParcelTypeRepository,
+        outbox_repo: OutboxRepository,
     ) -> None:
         self.parcel_repo = parcel_repo
         self.parcel_type_repo = parcel_type_repo
+        self.outbox_repo = outbox_repo
 
     async def create_parcel(self, parcel_data: ParcelCreate, session_id: str) -> Parcel:
         parcel_type = await self.parcel_type_repo.get_by_id(parcel_data.parcel_type_id)
@@ -23,6 +28,10 @@ class ParcelService:
 
         parcel = await self.parcel_repo.register_parcel(
             parcel_data=parcel_data, session_id=session_id
+        )
+
+        await self.outbox_repo.create_event(
+            event_type="parcel.created", payload={"parcel_id": parcel.id}
         )
 
         await self.parcel_repo.session.commit()

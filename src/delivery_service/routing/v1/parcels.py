@@ -3,6 +3,7 @@ from fastapi import APIRouter, Header, HTTPException, status
 from delivery_service.database.session import SessionDep
 from delivery_service.dependencies.session import SessionIdDep
 from delivery_service.integrations.redis import create_redis_client
+from delivery_service.repositories.outbox import OutboxRepository
 from delivery_service.repositories.parcel import ParcelRepository
 from delivery_service.repositories.parcel_type import ParcelTypeRepository
 from delivery_service.schemas.parcel import (
@@ -27,10 +28,15 @@ async def create_parcel(
 ) -> ParcelCreateResponse:
     parcel_repository = ParcelRepository(session)
     parcel_type_repository = ParcelTypeRepository(session)
+    outbox_repository = OutboxRepository(session)
 
     redis_client = create_redis_client()
 
-    service = ParcelService(parcel_repository, parcel_type_repository)
+    service = ParcelService(
+        parcel_repository,
+        parcel_type_repository,
+        outbox_repository,
+    )
     idempotency_service = IdempotencyService(redis_client)
 
     acquired = await idempotency_service.acquire(idempotency_key)
@@ -70,7 +76,11 @@ async def get_all_parcels(
 ) -> list[ParcelListItem]:
     parcel_repository = ParcelRepository(session)
     parcel_type_repository = ParcelTypeRepository(session)
-    service = ParcelService(parcel_repository, parcel_type_repository)
+    outbox_repository = OutboxRepository(session)
+
+    service = ParcelService(
+        parcel_repository, parcel_type_repository, outbox_repository
+    )
 
     parcels = await service.get_all_parcels(
         session_id=session_id,
@@ -89,8 +99,11 @@ async def get_parcel_by_id(
 ) -> ParcelListItem:
     parcel_repository = ParcelRepository(session)
     parcel_type_repository = ParcelTypeRepository(session)
+    outbox_repository = OutboxRepository(session)
 
-    service = ParcelService(parcel_repository, parcel_type_repository)
+    service = ParcelService(
+        parcel_repository, parcel_type_repository, outbox_repository
+    )
 
     parcel = await service.get_parcel_by_id(session_id=session_id, parcel_id=parcel_id)
 

@@ -5,6 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from delivery_service.models.outbox_event import OutboxEvent
 from delivery_service.models.parcel import Parcel
 from delivery_service.models.parcel_type import ParcelType
 
@@ -366,3 +367,31 @@ async def test_idempotency_key_is_released_after_parcel_creation_error(
 
     assert response2.status_code == 201
     assert "id" in response2.json()
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_create_parcel_creates_outbox_event(
+    client: AsyncClient, parcel_types: list[ParcelType], test_session: AsyncSession
+) -> None:
+    payload = {
+        "name": "MacBook",
+        "weight": 2.1,
+        "parcel_type_id": parcel_types[0].id,
+        "content_value_usd": 1800,
+    }
+
+    header = {"Idempotency-Key": str(uuid4())}
+
+    response = await client.post("/api/v1/parcels", json=payload, headers=header)
+
+    assert response.status_code == 201
+    parcel_id = response.json()["id"]
+
+    result = await test_session.execute(select(OutboxEvent))
+    event = result.scalars().one_or_none()
+
+    assert event is not None
+    assert event.event_type == "parcel.created"
+    assert event.payload["parcel_id"] == parcel_id
+    assert event.processed is False
