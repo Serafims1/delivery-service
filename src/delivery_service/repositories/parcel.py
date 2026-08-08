@@ -37,24 +37,21 @@ class ParcelRepository:
         if parcel_type_id is not None:
             query = query.where(Parcel.parcel_type_id == parcel_type_id)
 
-        if has_delivery_cost is True:
-            query = query.where(Parcel.delivery_cost_rub.is_not(None))
+        if has_delivery_cost is not None:
+            delivery_cost_filter = (
+                Parcel.delivery_cost_rub.is_not(None)
+                if has_delivery_cost
+                else Parcel.delivery_cost_rub.is_(None)
+            )
+            query = query.where(delivery_cost_filter)
 
-        if has_delivery_cost is False:
-            query = query.where(Parcel.delivery_cost_rub.is_(None))
-
-        query = query.order_by(Parcel.id)
-
-        query = query.offset(offset).limit(limit)
+        query = query.order_by(Parcel.id).offset(offset).limit(limit)
 
         result = await self.session.execute(query)
-
-        rows = result.mappings().all()
-
-        return [ParcelListItem.model_validate(row) for row in rows]
+        return [ParcelListItem.model_validate(row) for row in result.mappings().all()]
 
     def _build_parcel_query(self, session_id: str) -> Select[Any]:
-        query = (
+        return (
             select(
                 Parcel.id,
                 Parcel.name,
@@ -67,19 +64,19 @@ class ParcelRepository:
             .join(ParcelType, Parcel.parcel_type_id == ParcelType.id)
             .where(Parcel.session_id == session_id)
         )
-        return query
 
     async def get_parcel_by_id(
         self, session_id: str, parcel_id: int
     ) -> ParcelListItem | None:
-        query = self._build_parcel_query(session_id)
-
-        query = query.where(Parcel.id == parcel_id)
-
-        result = await self.session.execute(query)
+        result = await self.session.execute(
+            self._build_parcel_query(session_id).where(Parcel.id == parcel_id)
+        )
         row = result.mappings().one_or_none()
 
-        if row is None:
-            return None
+        return ParcelListItem.model_validate(row) if row is not None else None
 
-        return ParcelListItem.model_validate(row)
+    async def get_parcel_by_id_and_not_session(self, parcel_id: int) -> Parcel | None:
+        result = await self.session.execute(
+            select(Parcel).where(Parcel.id == parcel_id)
+        )
+        return result.scalars().one_or_none()

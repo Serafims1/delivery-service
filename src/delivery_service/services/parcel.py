@@ -2,6 +2,7 @@ from delivery_service.core.exceptions import (
     ParcelNotFoundError,
     ParcelTypeNotFoundError,
 )
+from delivery_service.database.uow import UnitOfWork
 from delivery_service.models.parcel import Parcel
 from delivery_service.repositories.outbox import OutboxRepository
 from delivery_service.repositories.parcel import ParcelRepository
@@ -15,10 +16,12 @@ class ParcelService:
         parcel_repo: ParcelRepository,
         parcel_type_repo: ParcelTypeRepository,
         outbox_repo: OutboxRepository,
+        uow: UnitOfWork,
     ) -> None:
         self.parcel_repo = parcel_repo
         self.parcel_type_repo = parcel_type_repo
         self.outbox_repo = outbox_repo
+        self.uow = uow
 
     async def create_parcel(self, parcel_data: ParcelCreate, session_id: str) -> Parcel:
         parcel_type = await self.parcel_type_repo.get_by_id(parcel_data.parcel_type_id)
@@ -34,7 +37,7 @@ class ParcelService:
             event_type="parcel.created", payload={"parcel_id": parcel.id}
         )
 
-        await self.parcel_repo.session.commit()
+        await self.uow.commit()
 
         return parcel
 

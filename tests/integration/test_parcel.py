@@ -274,7 +274,7 @@ async def test_get_parcel_by_id_success(
     assert data["id"] == parcel_id
     assert data["name"] == "MacBook"
     assert data["parcel_type_id"] == parcel_types[0].id
-    assert data["delivery_cost_rub"] is None
+    assert data["delivery_cost_rub"] == "Не рассчитано"
     assert "parcel_type_name" in data
 
 

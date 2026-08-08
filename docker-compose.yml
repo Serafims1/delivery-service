@@ -36,6 +36,68 @@ services:
     init: true
     restart: unless-stopped
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      - ./alembic.ini:/app/alembic.ini
+      - ./migrations:/app/migrations
+
+    environment:
+      PYTHONPATH: /app/src
+
+    command:
+      - python
+      - -m
+      - delivery_service.messaging.run_worker
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    init: true
+    restart: unless-stopped
+
+  publisher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      - ./alembic.ini:/app/alembic.ini
+      - ./migrations:/app/migrations
+
+    environment:
+      PYTHONPATH: /app/src
+
+    command:
+      - python
+      - -m
+      - delivery_service.messaging.run_publisher
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    init: true
+    restart: unless-stopped
+
   postgres:
     image: postgres:17-alpine
 

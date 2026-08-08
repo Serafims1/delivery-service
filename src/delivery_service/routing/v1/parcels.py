@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Header, HTTPException, status
 
 from delivery_service.database.session import SessionDep
+from delivery_service.database.uow import UnitOfWork
 from delivery_service.dependencies.session import SessionIdDep
 from delivery_service.integrations.redis import create_redis_client
 from delivery_service.repositories.outbox import OutboxRepository
@@ -29,13 +30,12 @@ async def create_parcel(
     parcel_repository = ParcelRepository(session)
     parcel_type_repository = ParcelTypeRepository(session)
     outbox_repository = OutboxRepository(session)
+    uow = UnitOfWork(session)
 
     redis_client = create_redis_client()
 
     service = ParcelService(
-        parcel_repository,
-        parcel_type_repository,
-        outbox_repository,
+        parcel_repository, parcel_type_repository, outbox_repository, uow
     )
     idempotency_service = IdempotencyService(redis_client)
 
@@ -77,9 +77,10 @@ async def get_all_parcels(
     parcel_repository = ParcelRepository(session)
     parcel_type_repository = ParcelTypeRepository(session)
     outbox_repository = OutboxRepository(session)
+    uow = UnitOfWork(session)
 
     service = ParcelService(
-        parcel_repository, parcel_type_repository, outbox_repository
+        parcel_repository, parcel_type_repository, outbox_repository, uow
     )
 
     parcels = await service.get_all_parcels(
@@ -100,9 +101,10 @@ async def get_parcel_by_id(
     parcel_repository = ParcelRepository(session)
     parcel_type_repository = ParcelTypeRepository(session)
     outbox_repository = OutboxRepository(session)
+    uow = UnitOfWork(session)
 
     service = ParcelService(
-        parcel_repository, parcel_type_repository, outbox_repository
+        parcel_repository, parcel_type_repository, outbox_repository, uow
     )
 
     parcel = await service.get_parcel_by_id(session_id=session_id, parcel_id=parcel_id)

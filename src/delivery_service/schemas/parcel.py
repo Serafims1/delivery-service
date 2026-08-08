@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ParcelCreate(BaseModel):
@@ -27,7 +27,13 @@ class ParcelListItem(ParcelCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(gt=0)
-    delivery_cost_rub: Decimal | None = Field(
-        None, max_digits=12, decimal_places=2, ge=0
-    )
+    delivery_cost_rub: Decimal | str
     parcel_type_name: str = Field(min_length=1, max_length=30)
+
+    @field_validator("delivery_cost_rub", mode="before")
+    @classmethod
+    def format_delivery_cost(cls, value: Decimal | None) -> Decimal | str:
+        if value is None:
+            return "Не рассчитано"
+
+        return value
