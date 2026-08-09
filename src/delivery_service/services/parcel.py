@@ -1,3 +1,5 @@
+from loguru import logger
+
 from delivery_service.core.exceptions import (
     ParcelNotFoundError,
     ParcelTypeNotFoundError,
@@ -27,6 +29,10 @@ class ParcelService:
         parcel_type = await self.parcel_type_repo.get_by_id(parcel_data.parcel_type_id)
 
         if parcel_type is None:
+            logger.warning(
+                "Parcel type not found | parcel_type_id={}",
+                parcel_data.parcel_type_id,
+            )
             raise ParcelTypeNotFoundError("Отсутствует тип посылки")
 
         parcel = await self.parcel_repo.register_parcel(
@@ -38,6 +44,12 @@ class ParcelService:
         )
 
         await self.uow.commit()
+
+        logger.info(
+            "Parcel created | parcel_id={} | parcel_type_id={}",
+            parcel.id,
+            parcel.parcel_type_id,
+        )
 
         return parcel
 
@@ -64,6 +76,7 @@ class ParcelService:
         )
 
         if parcel is None:
+            logger.warning("Parcel not found | parcel_id={}", parcel_id)
             raise ParcelNotFoundError("Посылка отсутствует")
 
         return parcel

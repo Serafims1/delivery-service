@@ -1,6 +1,7 @@
 import json
 
 from aio_pika.abc import AbstractIncomingMessage, AbstractQueue
+from loguru import logger
 
 from delivery_service.services.delivery_cost import DeliveryCostService
 
@@ -19,6 +20,10 @@ class ParcelCreatedConsumer:
         parcel_id = data["payload"]["parcel_id"]
 
         await self.delivery_cost_service.calculate(parcel_id)
+        logger.info(
+            "Message processed | parcel_id={}",
+            parcel_id,
+        )
 
     async def consume(self) -> None:
         async with self.queue.iterator() as queue_iter:

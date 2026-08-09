@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from loguru import logger
+
 from delivery_service.core.exceptions import ParcelNotFoundError
 from delivery_service.database.uow import UnitOfWork
 from delivery_service.repositories.parcel import ParcelRepository
@@ -23,6 +25,7 @@ class DeliveryCostService:
         )
 
         if parcel is None:
+            logger.warning("Parcel not found | parcel_id={}", parcel_id)
             raise ParcelNotFoundError("Посылка отсутствует")
 
         if parcel.delivery_cost_rub is not None:
@@ -36,3 +39,8 @@ class DeliveryCostService:
 
         parcel.delivery_cost_rub = delivery_cost.quantize(Decimal("0.01"))
         await self.uow.commit()
+        logger.info(
+            "Delivery cost calculated | parcel_id={} | delivery_cost={}",
+            parcel_id,
+            parcel.delivery_cost_rub,
+        )

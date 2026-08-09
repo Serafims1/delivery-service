@@ -1,5 +1,6 @@
 import aio_pika
 from aio_pika.abc import AbstractChannel, AbstractQueue, AbstractRobustConnection
+from loguru import logger
 
 from delivery_service.core.config import get_settings
 
@@ -7,12 +8,16 @@ from delivery_service.core.config import get_settings
 async def create_rabbitmq_connection() -> AbstractRobustConnection:
     settings = get_settings()
 
-    return await aio_pika.connect_robust(
+    connection = await aio_pika.connect_robust(
         host=settings.rabbitmq.host,
         port=settings.rabbitmq.port,
         login=settings.rabbitmq.user,
         password=settings.rabbitmq.password,
     )
+
+    logger.info("Connected to RabbitMQ")
+
+    return connection
 
 
 async def create_channel_and_queue(

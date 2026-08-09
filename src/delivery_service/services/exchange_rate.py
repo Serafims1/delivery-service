@@ -1,6 +1,7 @@
 from contextlib import suppress
 from decimal import Decimal
 
+from loguru import logger
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
@@ -21,6 +22,9 @@ class ExchangeRateService:
         try:
             cached_rate = await self.redis_client.get(EXCHANGE_RATE_CACHE_KEY)
         except RedisError:
+            logger.warning(
+                "Failed to read exchange rate from Redis | fallback=external_api"
+            )
             cached_rate = None
 
         if cached_rate is not None:

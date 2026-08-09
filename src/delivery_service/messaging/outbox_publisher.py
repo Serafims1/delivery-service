@@ -2,6 +2,7 @@ import json
 
 import aio_pika
 from aio_pika.abc import AbstractChannel
+from loguru import logger
 
 from delivery_service.database.uow import UnitOfWork
 from delivery_service.repositories.outbox import OutboxRepository
@@ -40,3 +41,8 @@ class OutboxPublisher:
 
             await self.outbox_repo.mark_processed(event)
             await self.uow.commit()
+            logger.info(
+                "Event published | event_id={} | event_type={}",
+                event.id,
+                event.event_type,
+            )
