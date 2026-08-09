@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header, HTTPException, status
+from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from delivery_service.database.session import SessionDep
 from delivery_service.database.uow import UnitOfWork
@@ -69,8 +69,8 @@ async def create_parcel(
 async def get_all_parcels(
     session: SessionDep,
     session_id: SessionIdDep,
-    limit: int = 10,
-    offset: int = 0,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     parcel_type_id: int | None = None,
     has_delivery_cost: bool | None = None,
 ) -> list[ParcelListItem]:

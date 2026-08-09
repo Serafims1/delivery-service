@@ -53,8 +53,28 @@ Prometheus собирает метрики, а Grafana используется 
 
 ## Run
 
+1. Создать рабочий конфиг:
+
+```bash
+cp config.yaml.example config.yaml
+```
+
+2. Запустить сервисы:
+
 ```bash
 docker compose up -d
+```
+
+3. Применить миграции:
+
+```bash
+make migrate
+```
+
+4. Заполнить таблицу типов посылок:
+
+```bash
+docker compose exec app /app/.venv/bin/python -m delivery_service.database.seed
 ```
 
 ## Useful Links
