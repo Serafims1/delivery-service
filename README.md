@@ -54,11 +54,15 @@ Grafana datasource и dashboard настраиваются вручную пос
 
 ## Run
 
-1. Создать рабочий конфиг:
+1. Создать локальные файлы окружения и конфигурации:
 
 ```bash
+cp .env.example .env
 cp config.yaml.example config.yaml
 ```
+
+Заменить placeholder-значения в `.env`; Docker Compose передаст их приложению
+и инфраструктурным сервисам.
 
 2. Запустить сервисы:
 

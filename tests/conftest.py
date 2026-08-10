@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncGenerator
 
 import pytest_asyncio
@@ -12,11 +13,11 @@ from delivery_service.models.parcel_type import ParcelType
 
 TEST_DATABASE_URL = URL.create(
     drivername="postgresql+asyncpg",
-    username="postgres",
-    password="2026project2026",
-    host="postgres_test",
-    port=5432,
-    database="delivery_test",
+    username=os.getenv("TEST_POSTGRES_USER", "postgres"),
+    password=os.getenv("TEST_POSTGRES_PASSWORD", "change-me"),
+    host=os.getenv("TEST_POSTGRES_HOST", "postgres_test"),
+    port=int(os.getenv("TEST_POSTGRES_PORT", "5432")),
+    database=os.getenv("TEST_POSTGRES_DB", "delivery_test"),
 )
 
 test_engine = create_async_engine(

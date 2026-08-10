@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     rabbitmq: RabbitMQSettings
 
     model_config = SettingsConfigDict(
+        env_nested_delimiter="__",
         yaml_file=CONFIG_PATH,
         yaml_file_encoding="utf-8",
         extra="forbid",

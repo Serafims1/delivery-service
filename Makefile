@@ -212,10 +212,10 @@ ps:
 	$(COMPOSE) ps
 
 docker-test:
-	$(COMPOSE) run --rm app pytest
+	$(COMPOSE) run --rm --no-deps app pytest
 
 docker-cov:
-	$(COMPOSE) run --rm \
+	$(COMPOSE) run --rm --no-deps \
 		-e COVERAGE_FILE=/tmp/.coverage \
 		app pytest \
 		--cov=delivery_service \

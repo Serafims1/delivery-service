@@ -12,6 +12,14 @@ jobs:
   checks:
     name: Checks and tests
     runs-on: ubuntu-24.04
+    env:
+      APP_SECRET_KEY: ${{ secrets.APP_SECRET_KEY }}
+      POSTGRES_DB: delivery
+      POSTGRES_TEST_DB: delivery_test
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_DEFAULT_USER }}
+      RABBITMQ_DEFAULT_PASS: ${{ secrets.RABBITMQ_DEFAULT_PASS }}
 
     steps:
       - name: Checkout repository
@@ -31,31 +39,37 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
+      - name: Validate CI credentials
+        shell: bash
+        run: |
+          for name in \
+            APP_SECRET_KEY \
+            POSTGRES_USER \
+            POSTGRES_PASSWORD \
+            RABBITMQ_DEFAULT_USER \
+            RABBITMQ_DEFAULT_PASS
+          do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing required GitHub Actions secret: ${name}" >&2
+              exit 1
+            fi
+          done
+
       - name: Create config
         run: cp config.yaml.example config.yaml
 
       - name: Run static checks
-        run: |
-          make format-check
-          make lint
-          make type
-          make security
-          make complexity
+        run: make format-check lint type security complexity
 
       - name: Build Docker images
-        run: docker compose build
+        run: make build
 
       - name: Start test infrastructure
-        run: docker compose up -d postgres_test redis rabbitmq
-
-      - name: Wait for test infrastructure
-        run: |
-          sleep 10
-          docker compose ps
+        run: docker compose up -d --wait --wait-timeout 120 postgres_test redis rabbitmq
 
       - name: Run tests
         run: make docker-test
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose down -v --remove-orphans
