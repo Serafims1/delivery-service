@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  checks:
+    name: Checks and tests
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14.7"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          version: "0.11.23"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Create config
+        run: cp config.yaml.example config.yaml
+
+      - name: Run static checks
+        run: |
+          make format-check
+          make lint
+          make type
+          make security
+          make complexity
+
+      - name: Build Docker images
+        run: docker compose build
+
+      - name: Run tests
+        run: make docker-test
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
