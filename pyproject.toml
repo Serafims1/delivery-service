@@ -1,0 +1,104 @@
+[project]
+name = "delivery-service"
+version = "0.1.0"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "aio-pika>=10.0.1",
+    "alembic>=1.18.5",
+    "asyncpg>=0.31.0",
+    "fastapi[standard]>=0.139.2",
+    "httpx>=0.28.1",
+    "itsdangerous>=2.2.0",
+    "loguru>=0.7.3",
+    "prometheus-fastapi-instrumentator>=8.1.0",
+    "pydantic-settings[yaml]>=2.14.2",
+    "redis>=8.1.0",
+    "sqlalchemy>=2.0.51",
+]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.4",
+    "mypy>=2.3.0",
+    "pre-commit>=4.6.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "radon>=6.0.1",
+    "ruff>=0.16.0",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+src = ["src", "tests"]
+exclude = [
+    ".git",
+    ".venv",
+    "build",
+    "dist",
+    "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "UP",
+    "SIM",
+    "ASYNC",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["delivery_service"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.14"
+files = ["src", "tests"]
+strict = true
+show_error_codes = true
+warn_unused_configs = true
+pretty = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "strict"
+addopts = [
+    "-v",
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+
+markers = [
+    "unit: быстрые изолированные тесты",
+    "integration: интеграционные тесты нескольких компонентов",
+    "smoke: проверка критически важного функционала",
+]
+
+[tool.coverage.run]
+source = ["delivery_service"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 70
+
+[tool.bandit]
+exclude_dirs = [
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "migrations",
+    "tests",
+]

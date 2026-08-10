@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+
+# Python virtual environments
+.venv
+venv
+
+# Python cache
+__pycache__
+*.py[cod]
+*$py.class
+
+# Test and quality caches
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# IDE
+.vscode
+.idea
+
+# Secrets and local configuration
+.env
+.env.*
+config.yaml
+
+# Build artifacts
+build
+dist
+*.egg-info
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md

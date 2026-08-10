@@ -1,0 +1,82 @@
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
+
+from delivery_service.models.parcel import Parcel
+from delivery_service.models.parcel_type import ParcelType
+from delivery_service.schemas.parcel import ParcelCreate, ParcelListItem
+
+
+class ParcelRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def register_parcel(
+        self, parcel_data: ParcelCreate, session_id: str
+    ) -> Parcel:
+        parcel = Parcel(**parcel_data.model_dump(), session_id=session_id)
+
+        self.session.add(parcel)
+        await self.session.flush()
+
+        return parcel
+
+    async def get_list_parcels(
+        self,
+        session_id: str,
+        limit: int,
+        offset: int,
+        parcel_type_id: int | None = None,
+        has_delivery_cost: bool | None = None,
+    ) -> list[ParcelListItem]:
+
+        query = self._build_parcel_query(session_id)
+
+        if parcel_type_id is not None:
+            query = query.where(Parcel.parcel_type_id == parcel_type_id)
+
+        if has_delivery_cost is not None:
+            delivery_cost_filter = (
+                Parcel.delivery_cost_rub.is_not(None)
+                if has_delivery_cost
+                else Parcel.delivery_cost_rub.is_(None)
+            )
+            query = query.where(delivery_cost_filter)
+
+        query = query.order_by(Parcel.id).offset(offset).limit(limit)
+
+        result = await self.session.execute(query)
+        return [ParcelListItem.model_validate(row) for row in result.mappings().all()]
+
+    def _build_parcel_query(self, session_id: str) -> Select[Any]:
+        return (
+            select(
+                Parcel.id,
+                Parcel.name,
+                Parcel.weight,
+                Parcel.parcel_type_id,
+                Parcel.content_value_usd,
+                Parcel.delivery_cost_rub,
+                ParcelType.name.label("parcel_type_name"),
+            )
+            .join(ParcelType, Parcel.parcel_type_id == ParcelType.id)
+            .where(Parcel.session_id == session_id)
+        )
+
+    async def get_parcel_by_id(
+        self, session_id: str, parcel_id: int
+    ) -> ParcelListItem | None:
+        result = await self.session.execute(
+            self._build_parcel_query(session_id).where(Parcel.id == parcel_id)
+        )
+        row = result.mappings().one_or_none()
+
+        return ParcelListItem.model_validate(row) if row is not None else None
+
+    async def get_parcel_by_id_and_not_session(self, parcel_id: int) -> Parcel | None:
+        result = await self.session.execute(
+            select(Parcel).where(Parcel.id == parcel_id)
+        )
+        return result.scalars().one_or_none()
