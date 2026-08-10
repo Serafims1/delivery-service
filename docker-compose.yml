@@ -99,7 +99,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.10-alpine
 
     environment:
       POSTGRES_DB: delivery
@@ -124,7 +124,7 @@ services:
     restart: unless-stopped
 
   postgres_test:
-    image: postgres:17-alpine
+    image: postgres:17.10-alpine
 
     environment:
       POSTGRES_DB: delivery_test
@@ -144,7 +144,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.10-alpine
 
     ports:
       - "127.0.0.1:6379:6379"
@@ -190,7 +190,7 @@ services:
     restart: unless-stopped
 
   rabbitmq:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.3.4-management-alpine
 
     environment:
       RABBITMQ_DEFAULT_USER: delivery_user

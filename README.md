@@ -40,6 +40,7 @@ Prometheus собирает метрики, а Grafana используется 
 - HTTP 5xx Errors.
 
 Также логируются HTTP-запросы, бизнес-события и работа RabbitMQ.
+Grafana datasource и dashboard настраиваются вручную после первого запуска.
 
 ## Testing
 

@@ -19,29 +19,32 @@ async def main() -> None:
     channel, queue = await create_channel_and_queue(connection)
 
     redis_client = create_redis_client()
-    exchange_rate_client = ExchangeRateClient()
 
-    async with async_session_factory() as session:
-        parcel_repo = ParcelRepository(session)
-        uow = UnitOfWork(session)
+    try:
+        exchange_rate_client = ExchangeRateClient()
 
-        rate_service = ExchangeRateService(
-            redis_client=redis_client,
-            exchange_rate_client=exchange_rate_client,
-        )
+        async with async_session_factory() as session:
+            parcel_repo = ParcelRepository(session)
+            uow = UnitOfWork(session)
 
-        delivery_cost_service = DeliveryCostService(
-            parcel_repo=parcel_repo,
-            rate_service=rate_service,
-            uow=uow,
-        )
+            rate_service = ExchangeRateService(
+                redis_client=redis_client,
+                exchange_rate_client=exchange_rate_client,
+            )
 
-        consumer = ParcelCreatedConsumer(
-            queue=queue,
-            delivery_cost_service=delivery_cost_service,
-        )
+            delivery_cost_service = DeliveryCostService(
+                parcel_repo=parcel_repo,
+                rate_service=rate_service,
+                uow=uow,
+            )
 
-        await consumer.consume()
+            consumer = ParcelCreatedConsumer(
+                queue=queue, delivery_cost_service=delivery_cost_service, uow=uow
+            )
+
+            await consumer.consume()
+    finally:
+        await redis_client.aclose()
 
 
 if __name__ == "__main__":

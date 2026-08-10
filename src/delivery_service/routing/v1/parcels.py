@@ -37,32 +37,47 @@ async def create_parcel(
     service = ParcelService(
         parcel_repository, parcel_type_repository, outbox_repository, uow
     )
-    idempotency_service = IdempotencyService(redis_client)
-
-    acquired = await idempotency_service.acquire(idempotency_key)
-
-    if not acquired:
-        res = await idempotency_service.repeat_request_answer(idempotency_key)
-
-        if res is not None:
-            return ParcelCreateResponse(id=res)
-
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Request with this Idempotency-Key is already processing",
-        )
-
     try:
-        parcel = await service.create_parcel(
-            parcel_data=parcel_data, session_id=session_id
+        idempotency_service = IdempotencyService(redis_client)
+
+        acquired = await idempotency_service.acquire(
+            session_id=session_id, key=idempotency_key
         )
-    except Exception:
-        await idempotency_service.release(idempotency_key)
-        raise
 
-    await idempotency_service.success_result(idempotency_key, parcel.id)
+        if not acquired:
+            res = await idempotency_service.repeat_request_answer(
+                session_id=session_id,
+                key=idempotency_key,
+            )
 
-    return ParcelCreateResponse(id=parcel.id)
+            if res is not None:
+                return ParcelCreateResponse(id=res)
+
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Request with this Idempotency-Key is already processing",
+            )
+
+        try:
+            parcel = await service.create_parcel(
+                parcel_data=parcel_data, session_id=session_id
+            )
+        except Exception:
+            await idempotency_service.release(
+                session_id=session_id,
+                key=idempotency_key,
+            )
+            raise
+
+        await idempotency_service.success_result(
+            session_id=session_id,
+            key=idempotency_key,
+            parcel_id=parcel.id,
+        )
+
+        return ParcelCreateResponse(id=parcel.id)
+    finally:
+        await redis_client.aclose()
 
 
 @router.get("", response_model=list[ParcelListItem])

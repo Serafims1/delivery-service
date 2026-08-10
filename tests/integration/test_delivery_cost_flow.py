@@ -90,8 +90,7 @@ async def test_delivery_cost_calculated_after_parcel_created(
     )
 
     consumer = ParcelCreatedConsumer(
-        queue=queue,
-        delivery_cost_service=delivery_cost_service,
+        queue=queue, delivery_cost_service=delivery_cost_service, uow=uow
     )
 
     message = await queue.get()
